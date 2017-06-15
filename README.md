@@ -1,55 +1,5 @@
 
-
-# Reality
-
-- http/https application = layer 4 load balancing (fast) = round_robin, least_conn
-- ws/http/https application = layer 7 load balancing (slow) = ip_hash
-
-- node portfinder: https://github.com/indexzero/node-portfinder
-
-# Nginx
-
-
-
-// {
-//   status_port : this.status_port,
-//   stream : {
-//     'app1' : {
-//       port : 7000,
-//       balance : 'roundrobin',
-//       instances : [{
-//         port : 9010
-//       }, {
-//         port : 9011
-//       }, {
-//         port : 9012
-//       }]
-//     }
-//   },
-//   http : {
-//     'app2' : {
-//       port : 7000,
-//       balance : 'roundrobin',
-//       instances : [{
-//         port : 9010
-//       }, {
-//         port : 9011
-//       }, {
-//         port : 9012
-//       }]
-//     }
-//   }
-// };
-
-
-
-```
-$ ./nginx -p . -c nginx.conf
-```
-
-Nginx vs Haproxy vs PM2 cluster
-https://gist.github.com/Unitech/4be07d1dd815afce793b6ab60949c167
-
+# Nginx configuration on the fly
 
 ## Build
 
@@ -63,6 +13,53 @@ $ ./nginx -v
 ```
 
 Full install: https://gist.github.com/tollmanz/8662688
+
+```
+$ ./nginx -p . -c nginx.conf
+```
+
+Nginx vs Haproxy vs PM2 cluster
+https://gist.github.com/Unitech/4be07d1dd815afce793b6ab60949c167
+
+## Template data
+
+```
+ {
+   status_port : this.status_port,
+   stream : {
+     'app1' : {
+       port : 7000,
+       balance : 'roundrobin',
+       instances : [{
+         port : 9010
+       }, {
+         port : 9011
+       }, {
+         port : 9012
+       }]
+     }
+   },
+   http : {
+     'app2' : {
+       port : 7000,
+       balance : 'roundrobin',
+       instances : [{
+         port : 9010
+       }, {
+         port : 9011
+       }, {
+         port : 9012
+       }]
+     }
+   }
+ };
+```
+
+## Reality
+
+- http/https application = layer 4 load balancing (fast) = round_robin, least_conn
+- ws/http/https application = layer 7 load balancing (slow) = ip_hash
+- node portfinder: https://github.com/indexzero/node-portfinder
 
 ## Doc
 
