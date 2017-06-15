@@ -1,0 +1,23 @@
+{
+  "name": "haproxy",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha test/*.mocha.js"
+  },
+  "dependencies": {
+    "ejs": "^2.5.6",
+    "needle" : "*",
+    "spiderlink" : "*"
+  },
+  "devDependencies" : {
+    "mocha" : "*",
+    "should" : "*",
+    "pm2" : "*",
+    "ws" : "*",
+    "websocket" : "*"
+  },
+  "author": "",
+  "license": "ISC"
+}
