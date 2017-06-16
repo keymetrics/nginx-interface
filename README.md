@@ -1,9 +1,30 @@
 
 # Nginx configuration on the fly
 
-## Build
+## API
 
-Options: http://nginx.org/en/docs/configure.html
+```javascript
+var nginx = new Nginx({
+  prefix : 'nginx_controller',
+  debug_mode : false
+});
+
+nginx.addOrUpdateAppRouting('app-name', {
+  mode : 'stream',
+  in_port : 8888,
+  out_ports : [10001, 10002]
+}, () => {
+  setTimeout(done, 1000);
+});
+
+nginx.deleteAppRouting('app-name', () => {
+  setTimeout(done, 1000);
+});
+```
+
+## Build NGINX
+
+Activate the TCP forwarding with the `--with-stream` option.
 
 ```
 $ ./configure --with-stream --with-http_stub_status_module --with-http_ssl_module
@@ -12,7 +33,10 @@ $ cp objs/nginx .
 $ ./nginx -v
 ```
 
+Extra options: http://nginx.org/en/docs/configure.html
 Full install: https://gist.github.com/tollmanz/8662688
+
+Start nginx:
 
 ```
 $ ./nginx -p . -c nginx.conf

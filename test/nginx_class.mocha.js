@@ -1,98 +1,16 @@
 
-const Nginx = require('../nginx.js');
+const Nginx = require('..');
 const needle = require('needle');
 const pm2 = require('pm2');
 const should = require('should');
 const WS = require('ws');
+const Helpers = require('./helpers.js');
+const path = require('path');
 
-function do_query(url, cb) {
-  needle.get(url, (err, res, body) => {
-    should(err).be.null();
-    cb(null, body.toString());
-  });
-}
-
-/**
- * Check if application is available for
- * @param check_time time to check if no error
- */
-var multi_query = function(needed_port_range, cb) {
-  if (needed_port_range == 0)
-    return cb(null, { success : true });
-
-  do_query('http://localhost:9001', (err, port) => {
-    needed_port_range.forEach(function(t_port, i) {
-      if (t_port == parseInt(port)) {
-        t_port = needed_port_range.splice(i, 1);
-      }
-    });
-    multi_query(needed_port_range, cb);
-  });
-}
-
-/**
- * Check if application is available for
- * @param check_time time to check if no error
- */
-var check_availability = function(check_time, cb) {
-  const INTERVAL = 5;
-  var iterations = check_time / INTERVAL;
-
-  (function query(iterations) {
-    if (iterations <= 0) return cb(null, { success : true });
-    setTimeout(() => {
-      do_query('http://localhost:9001', (err, port) => {
-        if (err) {
-          console.error(err);
-          return cb(err);
-        }
-        iterations--;
-        query(iterations);
-      });
-    }, INTERVAL);
-  })(iterations);
-}
-
-function connectWS(PORT, cb) {
-  var WebSocketClient = require('websocket').client;
-
-  var client = new WebSocketClient();
-
-  client.on('connectFailed', function(error) {
-    console.log('Connect Error: ' + error.toString());
-  });
-
-  client.on('connect', function(connection) {
-    connection.on('error', function(error) {
-      console.log('Connection Error: ' + error.toString());
-      return cb(error);
-    });
-    connection.on('close', function() {
-    });
-    connection.on('message', function(message) {
-      connection.close();
-      return cb(null, message.utf8Data);
-    });
-  });
-  client.connect('ws://localhost:' + PORT + '/', 'echo-protocol');
-}
-
-function connectTCP(PORT, cb) {
-  var net = require('net');
-
-  var client = new net.Socket();
-  client.connect(PORT, '127.0.0.1', function() {
-    client.write('Hello, server! Love, Client.');
-  });
-
-  client.on('data', function(data) {
-    client.destroy();
-    cb();
-  });
-}
 describe('Nginx Class', function() {
   var nginx;
 
+  this.timeout(5000);
 
   before(function(done) {
     pm2.kill(done);
@@ -102,20 +20,22 @@ describe('Nginx Class', function() {
     nginx.stop(done);
   });
 
-  it('should instanciate class', function() {
-    nginx = new Nginx({
-      prefix : 'nginx_controller',
-      debug_mode : false
+  describe('Base', function() {
+    it('should instanciate class', function() {
+      nginx = new Nginx({
+        prefix : path.join(__dirname, '../rd', 'nginx_controller'),
+        debug_mode : false
+      });
     });
-  });
 
-  it('should start nginx', function(done) {
-    nginx.start(done);
-  });
+    it('should start nginx', function(done) {
+      nginx.start(done);
+    });
 
-  it('should reload nginx', function(done) {
-    nginx.reload(() => {
-      setTimeout(done, 100);
+    it('should reload nginx', function(done) {
+      nginx.reload(() => {
+        setTimeout(done, 100);
+      });
     });
   });
 
@@ -154,7 +74,7 @@ describe('Nginx Class', function() {
     });
 
     it('should connect to TCP', function(done) {
-      connectTCP(8888, done);
+      Helpers.connectTCP(8888, done);
     });
 
     it('should delete configuration', function(done) {
@@ -220,13 +140,13 @@ describe('Nginx Class', function() {
     });
 
     it('should frontal ip hit all backends (10001, 10002, 10003)', function(done) {
-      multi_query([10001, 10002, 10003], done);
+      Helpers.multi_query([10001, 10002, 10003], done);
     });
 
     it('should re-configure nginx with Zero Downtime Reload (no failures at all)', function(done) {
       this.timeout(3000);
 
-      check_availability(1500, done);
+      Helpers.check_availability(1500, done);
 
       setTimeout(function() {
         nginx.addOrUpdateAppRouting('app1', {
@@ -239,7 +159,7 @@ describe('Nginx Class', function() {
     });
 
     it('should frontal ip hit all new backends (10004, 10005)', function(done) {
-      multi_query([10004, 10005], done);
+      Helpers.multi_query([10004, 10005], done);
     });
 
     it('should delete configuration', function(done) {
@@ -312,13 +232,13 @@ describe('Nginx Class', function() {
     });
 
     it('should frontal ip hit all backends (10001, 10002, 10003)', function(done) {
-      multi_query([10001, 10002, 10003], done);
+      Helpers.multi_query([10001, 10002, 10003], done);
     });
 
     it('should re-configure nginx with Zero Downtime Reload (no failures at all)', function(done) {
       this.timeout(3000);
 
-      check_availability(1500, done);
+      Helpers.check_availability(1500, done);
 
       setTimeout(function() {
         nginx.addOrUpdateAppRouting('app1', {
@@ -331,7 +251,7 @@ describe('Nginx Class', function() {
     });
 
     it('should frontal ip hit all new backends (10004, 10005)', function(done) {
-      multi_query([10004, 10005], done);
+      Helpers.multi_query([10004, 10005], done);
     });
 
     it('should delete configuration', function(done) {
@@ -384,8 +304,8 @@ describe('Nginx Class', function() {
     });
 
     it('should successfully connect via WS', function(done) {
-      connectWS(9001, (err, msg) => {
-        connectWS(9001, (err, msg) => {
+      Helpers.connectWS(9001, (err, msg) => {
+        Helpers.connectWS(9001, (err, msg) => {
           should(err).be.null();
           // Sticky LB should always redirect to same app
           should(msg).eql('10001');

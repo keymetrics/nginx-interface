@@ -1,15 +1,16 @@
 {
-  "name": "haproxy",
+  "name": "nginx-pm2",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "mocha test/*.mocha.js"
+    "test": "DEBUG='nginx' mocha test/*.mocha.js"
   },
   "dependencies": {
     "ejs": "^2.5.6",
     "needle" : "*",
-    "spiderlink" : "*"
+    "spiderlink" : "*",
+    "debug" : "*"
   },
   "devDependencies" : {
     "mocha" : "*",
@@ -18,6 +19,6 @@
     "ws" : "*",
     "websocket" : "*"
   },
-  "author": "",
-  "license": "ISC"
+  "author": "Alexandre Strzelewicz",
+  "license": "AGPL v3"
 }

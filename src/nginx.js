@@ -4,6 +4,7 @@ const ejs = require('ejs');
 const path = require('path');
 const needle = require('needle');
 const tooling = require('./tooling.js');
+const debug = require('debug')('nginx');
 
 class Nginx {
   constructor(opts) {
@@ -13,8 +14,8 @@ class Nginx {
     }, opts);
 
     this.prefix = opts.prefix;
-    this.conf = path.join(__dirname, this.prefix, 'nginx.conf');
-    this.bin_path = path.join(__dirname, this.prefix, 'nginx');
+    this.conf = path.join(this.prefix, 'nginx.conf');
+    this.bin_path = path.join(this.prefix, 'nginx');
     this.status_port = 49999;
 
     this.current_conf = {
@@ -26,15 +27,17 @@ class Nginx {
   }
 
   start(cb) {
-    this.flushConfiguration();
+    this.flushConfiguration(() => {
+      var cmd = `${this.bin_path} -p ${this.prefix} -c ${this.conf}`;
 
-    tooling.exec(`${this.bin_path} -p ${this.prefix} -c ${this.conf}`, () => {});
+      tooling.exec(cmd, () => {});
 
-    setTimeout(cb, 500);
+      setTimeout(cb, 500);
 
-    process.on('SIGINT', () => {
-      this.stop(() => {
-        process.exit(0);
+      process.on('SIGINT', () => {
+        this.stop(() => {
+          process.exit(0);
+        });
       });
     });
   }
@@ -119,7 +122,7 @@ class Nginx {
   }
 
   flushConfiguration(cb) {
-    ejs.renderFile('./template.cfg', this.current_conf, (err, cfg) => {
+    ejs.renderFile(path.join(__dirname, './template.cfg'), this.current_conf, (err, cfg) => {
       if (err) {
         console.error(err);
         return cb ? cb(err) : null;
@@ -133,22 +136,3 @@ class Nginx {
 }
 
 module.exports = Nginx;
-
-// var nginx = new Nginx('nginx_controller');
-
-// // nginx.addOrUpdateAppRouting('km', 9000, [10001, 10002, 10003]);
-// // nginx.addOrUpdateAppRouting('km', 9000, [10004, 10005, 10006]);
-// //nginx.addOrUpdateAppRouting('km', 9000, [10007, 10008]);
-// //nginx.addOrUpdateAppRouting('km3', 9001, [20001, 20002, 20003]);
-
-// var i = 10000, j = 10001, k = 10002;
-
-// setInterval(() => {
-//   if (k < 10010) {
-//     nginx.addOrUpdateAppRouting('km', 9000, [i+=3, j+=3, k+=3]);
-
-//     nginx.reload(() => {});
-//   }
-// }, 10000);
-
-// nginx.start(() => {});
