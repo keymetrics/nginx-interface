@@ -4,13 +4,15 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "DEBUG='nginx' mocha test/*.mocha.js"
+    "test": "DEBUG='nginx' mocha test/nginx_class.mocha.js"
   },
   "dependencies": {
     "ejs": "^2.5.6",
     "needle" : "*",
     "spiderlink" : "*",
-    "debug" : "*"
+    "debug" : "*",
+    "find-process" : "*",
+    "async" : "*"
   },
   "devDependencies" : {
     "mocha" : "*",

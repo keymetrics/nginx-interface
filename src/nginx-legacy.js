@@ -1,4 +1,5 @@
 
+
 const fs = require('fs');
 const ejs = require('ejs');
 const path = require('path');
@@ -9,40 +10,29 @@ const findproc = require('find-process');
 
 class Nginx {
   constructor(opts) {
-    this.debug_mode = opts.debug_mode || false;
-    this.conf = opts.conf;
-    this.pid = opts.pid;
-    this.status_port = opts.status_port || 49999;
+    this.opts = Object.assign({
+      prefix : '.',
+      debug_mode : true
+    }, opts);
+
+    this.prefix = opts.prefix;
+    this.conf = path.join(this.prefix, 'nginx.conf');
+    this.bin_path = path.join(this.prefix, 'nginx');
+    this.status_port = 49999;
+    this.nginx_pid = 0;
 
     this.current_conf = {
-      debug_mode : this.debug_mode,
+      debug_mode : this.opts.debug_mode,
       status_port : this.status_port,
       stream : {},
       http : {}
     };
   }
 
-  init(cb) {
-    if (this.pid == null) {
-      this.findNginxPID((err, pid) => {
-        this.pid = pid;
-
-        if (this.conf == null) {
-          this.findNginxConf((err, conf) => {
-            this.conf = conf;
-            cb();
-          });
-          return false;
-        }
-        return cb();
-      });
-    }
-  }
-
-  // Only look for default path
-  // @todo add dynamic nginx.conf finder (locate like)
-  findNginxConf(cb) {
-    tooling.findConfigurationFile(cb);
+  initExternalNginx() {
+    this.findNginxPID((err, pid) => {
+      this.nginx_pid = pid;
+    });
   }
 
   findNginxPID(cb) {
@@ -61,6 +51,22 @@ class Nginx {
       .catch((e) => {
         throw e;
       })
+  }
+
+  start(cb) {
+    this.flushConfiguration(() => {
+      var cmd = `${this.bin_path} -p ${this.prefix} -c ${this.conf}`;
+
+      tooling.exec(cmd, () => {});
+
+      setTimeout(cb, 500);
+
+      process.on('SIGINT', () => {
+        this.stop(() => {
+          process.exit(0);
+        });
+      });
+    });
   }
 
   /**
@@ -112,7 +118,7 @@ class Nginx {
       balance : lb_mode
     };
 
-    this.updateConfiguration((err) => {
+    this.flushConfiguration((err) => {
       if (err) return cb(err);
       this.reload(cb);
     });
@@ -121,31 +127,34 @@ class Nginx {
   deleteAppRouting(app_name, cb = () => {}) {
     delete this.current_conf.stream[app_name];
     delete this.current_conf.http[app_name];
-    this.updateConfiguration((err) => {
+    this.flushConfiguration((err) => {
       if (err) return cb(err);
       this.reload(cb);
     });
   }
 
   status(cb) {
-    needle.get(`http://localhost:${this.status_port}/status`, (err, res, body) => {
+    needle.get('http://localhost:49999/status', (err, res, body) => {
       if (err) return cb(err);
       return cb(null, tooling.parseStub(body));
     });
   }
 
-  reload(cb) {
-    process.kill(this.pid, 'SIGHUP');
-    cb();
+  stop(cb) {
+    tooling.exec(`${this.bin_path} -p ${this.prefix} -c ${this.conf} -s stop`, cb);
   }
 
-  updateConfiguration(cb) {
+  reload(cb) {
+    tooling.exec(`${this.bin_path} -p ${this.prefix} -c ${this.conf} -s reload`, cb);
+  }
+
+  flushConfiguration(cb) {
     ejs.renderFile(path.join(__dirname, './template.cfg'), this.current_conf, (err, cfg) => {
       if (err) {
         console.error(err);
         return cb ? cb(err) : null;
       }
-      if (this.debug_mode)
+      if (this.opts.debug_mode)
         console.log(cfg);
       fs.writeFileSync(this.conf, cfg);
       return cb ? cb() : null;

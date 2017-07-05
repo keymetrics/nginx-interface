@@ -2,8 +2,22 @@ const activeRegex = /^Active connections:\s+(\d+)/;
 const readingWritingRegex = /^Reading:\s+(\d+).*Writing:\s+(\d+).*Waiting:\s+(\d+)/;
 const handledRegex = /^\s+(\d+)\s+(\d+)\s+(\d+)/;
 const spawn = require('child_process').spawn;
+const async = require('async');
+const fs = require('fs');
 
-exports.generateFreePortList = function(start, end) {
+exports.findConfigurationFile = function(cb) {
+  async.eachSeries([
+    '/etc/nginx/nginx.conf',
+    '/usr/local/nginx/conf/nginx.conf',
+    '/usr/local/etc/nginx/nginx.conf'
+  ], function(path, next) {
+    fs.stat(path, function(err) {
+      if (err) return next();
+      return next(path);
+    });
+  }, function(file) {
+    return cb(null, file);
+  });
 }
 
 exports.exec = function(command, cb) {
