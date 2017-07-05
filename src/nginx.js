@@ -6,6 +6,7 @@ const needle = require('needle');
 const tooling = require('./tooling.js');
 const debug = require('debug')('nginx');
 const findproc = require('find-process');
+const hasbin = require('hasbin');
 
 class Nginx {
   constructor(opts) {
