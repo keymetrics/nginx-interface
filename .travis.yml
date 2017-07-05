@@ -10,4 +10,4 @@ before_install:
   - sudo apt-get install nginx
   - sudo service nginx start
 script:
-  - sudo $(type -P npm) test
+  - sudo - E env "$PATH=PATH" npm test
