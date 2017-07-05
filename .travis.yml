@@ -1,6 +1,5 @@
 language: node_js
 node_js:
-  - "4"
   - "6"
   - "8"
 os:
@@ -8,3 +7,4 @@ os:
 before_install:
   - sudo apt-get -qq update
   - sudo apt-get install nginx
+  - sudo service nginx start

@@ -25,6 +25,9 @@ class Nginx {
   init(cb) {
     if (this.pid == null) {
       this.findNginxPID((err, pid) => {
+        if (err) {
+          throw new Error(err);
+        }
         this.pid = pid;
 
         if (this.conf == null) {
@@ -45,6 +48,10 @@ class Nginx {
     tooling.findConfigurationFile(cb);
   }
 
+  startNginx(cb) {
+    tooling.exec(`service nginx start`, cb);
+  }
+
   findNginxPID(cb) {
     findproc('name', 'nginx')
       .then(function(list) {
@@ -55,6 +62,9 @@ class Nginx {
           if (l.ppid <= 1)
             nginx_proc = l;
         });
+
+        if (!nginx_proc)
+          return cb('Nginx is not online');
 
         return cb(null, nginx_proc.pid);
       })
