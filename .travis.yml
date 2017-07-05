@@ -9,3 +9,5 @@ before_install:
   - sudo apt-get -qq update
   - sudo apt-get install nginx
   - sudo service nginx start
+before_script:
+  - sudo su

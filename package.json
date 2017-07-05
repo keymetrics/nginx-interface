@@ -12,14 +12,13 @@
     "spiderlink" : "*",
     "debug" : "*",
     "find-process" : "*",
-    "async" : "*"
+    "async" : "*",
+    "hasbin" : "*"
   },
   "devDependencies" : {
     "mocha" : "*",
     "should" : "*",
-    "pm2" : "*",
-    "ws" : "*",
-    "websocket" : "*"
+    "pm2" : "*"
   },
   "author": "Alexandre Strzelewicz",
   "license": "AGPL v3"
