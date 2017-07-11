@@ -5,21 +5,6 @@ const spawn = require('child_process').spawn;
 const async = require('async');
 const fs = require('fs');
 
-exports.findConfigurationFile = function(cb) {
-  async.eachSeries([
-    '/etc/nginx/nginx.conf',
-    '/usr/local/nginx/conf/nginx.conf',
-    '/usr/local/etc/nginx/nginx.conf'
-  ], function(path, next) {
-    fs.stat(path, function(err) {
-      if (err) return next();
-      return next(path);
-    });
-  }, function(file) {
-    return cb(null, file);
-  });
-}
-
 exports.exec = function(command, cb) {
   var cmd = command.split(' ');
   var bin = cmd.shift();

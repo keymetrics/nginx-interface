@@ -18,17 +18,17 @@ Helpers.do_query = function(url, cb) {
  * Check if application is available for
  * @param check_time time to check if no error
  */
-Helpers.multi_query = function(needed_port_range, cb) {
+Helpers.multi_query = function(listening_port, needed_port_range, cb) {
   if (needed_port_range == 0)
     return cb(null, { success : true });
 
-  Helpers.do_query('http://localhost:9001', (err, port) => {
+  Helpers.do_query(`http://localhost:${listening_port}`, (err, port) => {
     needed_port_range.forEach(function(t_port, i) {
       if (t_port == parseInt(port)) {
         t_port = needed_port_range.splice(i, 1);
       }
     });
-    Helpers.multi_query(needed_port_range, cb);
+    Helpers.multi_query(listening_port, needed_port_range, cb);
   });
 }
 

@@ -5,15 +5,20 @@ const path = require('path');
 const needle = require('needle');
 const tooling = require('./tooling.js');
 const debug = require('debug')('nginx');
+const EventEmitter = require('events');
 const findproc = require('find-process');
 const hasbin = require('hasbin');
+const async = require('async');
 
-class Nginx {
+class NginxController extends EventEmitter {
   constructor(opts) {
+    super();
     this.debug_mode = opts.debug_mode || false;
-    this.conf = opts.conf;
+    this.conf_file = opts.conf;
     this.pid = opts.pid;
     this.status_port = opts.status_port || 49999;
+
+    this.nginx_status = null;
 
     this.current_conf = {
       debug_mode : this.debug_mode,
@@ -23,34 +28,94 @@ class Nginx {
     };
   }
 
-  init(cb) {
-    if (this.pid == null) {
-      this.findNginxPID((err, pid) => {
-        if (err) {
-          throw new Error(err);
-        }
-        this.pid = pid;
+  launchDiscovery() {
+    var t = setInterval(() => {
+      this.findNginxMeta();
+    }, 1000);
+    this.findNginxMeta();
+  }
 
-        if (this.conf == null) {
-          this.findNginxConf((err, conf) => {
-            this.conf = conf;
-            cb();
+  findNginxMeta() {
+    this.findNginxPID((err, pid) => {
+      if (err) {
+        this.nginx_status = 'nginx pid cannot be found = nginx seems offline';
+        return this.emit('error', 'cannot find nginx pid');
+      }
+
+      this.nginx_status = null;
+      this.pid = pid;
+
+      if (this.conf_file == null) {
+        this.findNginxConf((err, conf) => {
+          if (err) {
+            this.nginx_status = 'cannot find nginx.conf file';
+            return this.emit('error', 'cannot find nginx.conf file');
+          }
+
+          this.nginx_status = null;
+          this.conf_file = conf;
+
+          this.emit('ready', {
+            conf : this.conf_file,
+            pid : this.pid
           });
-          return false;
-        }
-        return cb();
+        });
+
+        return false;
+      }
+
+      this.emit('ready', {
+        conf : this.conf_file,
+        pid : this.pid
       });
-    }
+    });
+  }
+
+  launchInterface() {
+    var bus = require('spiderlink')('nginx-interface');
+    var nginx = this;
+
+    bus.expose('getStatus', function(data, reply) {
+      nginx.getStatus(reply);
+    });
+
+    bus.expose('ping', function(data, reply) {
+      reply('pong');
+    });
+
+    bus.expose('addOrUpdateAppRouting', function(data, reply) {
+      var app_name = data.app_name;
+      var routing = data.routing;
+
+      nginx.addOrUpdateAppRouting(app_name, routing, function(err, data) {
+        reply(data);
+      });
+    });
+
+    bus.expose('deleteAppRouting', function(data, reply) {
+      var app_name = data.app_name;
+
+      nginx.deleteAppRouting(app_name, reply);
+    });
   }
 
   // Only look for default path
   // @todo add dynamic nginx.conf finder (locate like)
   findNginxConf(cb) {
-    tooling.findConfigurationFile(cb);
-  }
-
-  startNginx(cb) {
-    tooling.exec(`service nginx start`, cb);
+    async.eachSeries([
+      '/etc/nginx/nginx.conf',
+      '/usr/local/nginx/conf/nginx.conf',
+      '/usr/local/etc/nginx/nginx.conf'
+    ], function(path, next) {
+      fs.stat(path, function(err) {
+        if (err) return next();
+        return next(path);
+      });
+    }, function(file) {
+      if (file == null)
+        return cb(new Error('Cannot nginx.conf file'));
+      return cb(null, file);
+    });
   }
 
   findNginxPID(cb) {
@@ -72,6 +137,13 @@ class Nginx {
       .catch((e) => {
         throw e;
       })
+  }
+
+  startNginx(cb) {
+    hasbin('service', function(result) {
+      if (result === false)
+        tooling.exec(`service nginx start`, cb);
+    });
   }
 
   /**
@@ -138,7 +210,7 @@ class Nginx {
     });
   }
 
-  status(cb) {
+  getStatus(cb) {
     needle.get(`http://localhost:${this.status_port}/status`, (err, res, body) => {
       if (err) return cb(err);
       return cb(null, tooling.parseStub(body));
@@ -146,8 +218,15 @@ class Nginx {
   }
 
   reload(cb) {
-    process.kill(this.pid, 'SIGHUP');
-    cb();
+    try {
+      process.kill(this.pid, 'SIGHUP');
+    } catch(e) {
+      return cb(e);
+    }
+
+    process.nextTick(() => {
+      return cb(null, this.current_conf);
+    });
   }
 
   updateConfiguration(cb) {
@@ -158,10 +237,15 @@ class Nginx {
       }
       if (this.debug_mode)
         console.log(cfg);
-      fs.writeFileSync(this.conf, cfg);
-      return cb ? cb() : null;
+      fs.writeFile(this.conf_file, cfg, (err) => {
+        if (err) {
+          console.error(err);
+          return cb ? cb(err) : null;
+        }
+        return cb ? cb(null, this.current_conf) : null;
+      });
     });
   }
 }
 
-module.exports = Nginx;
+module.exports = NginxController;
