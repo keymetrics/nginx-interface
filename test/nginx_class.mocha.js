@@ -129,7 +129,9 @@ describe('Nginx Class', function() {
           in_port : 9001,
           out_ports : [10001, 10002, 10003]
         }
-      }, () => {
+      }, (packet) => {
+        should(packet.err).be.null();
+        should(packet.data.http['app1'].instances.length).eql(3);
         setTimeout(done, 1000);
       });
     });

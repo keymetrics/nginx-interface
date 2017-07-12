@@ -88,7 +88,10 @@ class NginxController extends EventEmitter {
       var routing = data.routing;
 
       nginx.addOrUpdateAppRouting(app_name, routing, function(err, data) {
-        reply(data);
+        reply({
+          data : data,
+          err : err
+        });
       });
     });
 
