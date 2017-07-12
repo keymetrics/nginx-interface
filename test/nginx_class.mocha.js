@@ -11,6 +11,7 @@ const fs = require('fs');
 describe('Nginx Class', function() {
   var nginx;
   var client;
+  var conf;
 
   this.timeout(5000);
 
@@ -78,7 +79,7 @@ describe('Nginx Class', function() {
 
     it('should get configuration', function(done) {
       client.call('getConfiguration', function(data) {
-        console.log(data);
+        conf = data;
         done();
       });
     });
@@ -141,6 +142,13 @@ describe('Nginx Class', function() {
         should(packet.data.http['app1'].instances.length).eql(3);
         setTimeout(done, 1000);
       });
+    });
+
+    it('should have right config file', function(done) {
+      console.log(`Reading ${conf.conf_file}`);
+      var conf_file = fs.readFileSync(conf.conf_file).toString();
+      console.log(conf_file);
+      done();
     });
 
     it('should frontal ip hit all backends (10001, 10002, 10003)', function(done) {
