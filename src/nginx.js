@@ -229,7 +229,7 @@ class NginxController extends EventEmitter {
 
   reload(cb) {
     try {
-      process.kill(this.pid, 'SIGHUP');
+      process.kill(parseInt(this.pid), 'SIGHUP');
     } catch(e) {
       return cb(e);
     }
