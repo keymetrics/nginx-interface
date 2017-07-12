@@ -140,7 +140,7 @@ describe('Nginx Class', function() {
       }, (packet) => {
         should(packet.err).be.null();
         should(packet.data.http['app1'].instances.length).eql(3);
-        setTimeout(done, 1000);
+        setTimeout(done, 3000);
       });
     });
 
@@ -171,7 +171,6 @@ describe('Nginx Class', function() {
         }, function() {
         });
       }, 500);
-
     });
 
     it('should frontal ip hit all new backends (10004, 10005)', function(done) {
