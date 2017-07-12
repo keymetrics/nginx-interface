@@ -83,6 +83,13 @@ class NginxController extends EventEmitter {
       reply('pong');
     });
 
+    bus.expose('getConfiguration', (data, reply) => {
+      reply({
+        conf_file: this.conf_file,
+        pid : this.pid
+      });
+    });
+
     bus.expose('addOrUpdateAppRouting', function(data, reply) {
       var app_name = data.app_name;
       var routing = data.routing;

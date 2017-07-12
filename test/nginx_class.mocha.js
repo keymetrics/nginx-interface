@@ -75,6 +75,13 @@ describe('Nginx Class', function() {
         done();
       });
     });
+
+    it('should get configuration', function(done) {
+      client.call('getConfiguration', function(data) {
+        console.log(data);
+        done();
+      });
+    });
   });
 
   describe('(HTTP) HTTP Add/Update routing', function() {
