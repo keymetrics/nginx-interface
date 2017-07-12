@@ -79,6 +79,7 @@ describe('Nginx Class', function() {
 
     it('should get configuration', function(done) {
       client.call('getConfiguration', function(data) {
+        console.log(data);
         conf = data;
         done();
       });
