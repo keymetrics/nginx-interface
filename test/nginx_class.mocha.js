@@ -141,7 +141,7 @@ describe('Nginx Class', function() {
       }, (packet) => {
         should(packet.err).be.null();
         should(packet.data.http['app1'].instances.length).eql(3);
-        setTimeout(done, 3000);
+        done();
       });
     });
 

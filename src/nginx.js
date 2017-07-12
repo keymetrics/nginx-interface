@@ -16,7 +16,7 @@ class NginxController extends EventEmitter {
     this.debug_mode = opts.debug_mode || false;
     this.conf_file = opts.conf;
     this.pid = opts.pid;
-    this.status_port = opts.status_port || 49999;
+    this.status_port = opts.status_port;
 
     this.nginx_status = null;
 
@@ -221,6 +221,11 @@ class NginxController extends EventEmitter {
   }
 
   getStatus(cb) {
+    if (!this.status_port) {
+      return process.nextTick(function() {
+        return cb(new Error('Status port not configured'));
+      });
+    }
     needle.get(`http://localhost:${this.status_port}/status`, (err, res, body) => {
       if (err) return cb(err);
       return cb(null, tooling.parseStub(body));
