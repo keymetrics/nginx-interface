@@ -149,6 +149,9 @@ describe('Nginx Class', function() {
       console.log(`Reading ${conf.conf_file}`);
       var conf_file = fs.readFileSync(conf.conf_file).toString();
       console.log(conf_file);
+
+      var err_file = fs.readFileSync('/var/log/nginx/error.log').toString();
+      console.log(err_file);
       done();
     });
 
