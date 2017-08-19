@@ -8,17 +8,17 @@
   },
   "dependencies": {
     "ejs": "^2.5.6",
-    "needle" : "*",
-    "spiderlink" : "*",
-    "debug" : "*",
-    "find-process" : "*",
-    "async" : "*",
-    "hasbin" : "*"
+    "needle": "*",
+    "spiderlink": "*",
+    "debug": "*",
+    "find-process": "*",
+    "async": "*",
+    "hasbin": "*"
   },
-  "devDependencies" : {
-    "mocha" : "*",
-    "should" : "*",
-    "pm2" : "*"
+  "devDependencies": {
+    "mocha": "*",
+    "should": "*",
+    "pm2": "*"
   },
   "author": "Alexandre Strzelewicz",
   "license": "AGPL v3"

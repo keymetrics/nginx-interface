@@ -1,25 +1,42 @@
 
-# Nginx configuration on the fly
+# nginx-agent
+
+This module allows to easily interact and re-configure NGINX on the fly.
+Communicating with this agent require spiderlink communication.
 
 ## API
 
 ```javascript
-var nginx = new Nginx({
-  prefix : 'nginx_controller',
-  debug_mode : false
+var client = require('spiderlink')('pm2');
+
+client.call('addPortRouting', {
+  app_name : 'http-api',
+  opts : {
+    mode : 'http',
+    in_port : 80,
+    out_port : 10001
+  }
+}, function(packet) {
+  if (packet.err) console.error(packet.err);
+  console.log(packet.data);
 });
 
-nginx.addOrUpdateAppRouting('app-name', {
-  mode : 'stream',
-  in_port : 8888,
-  out_ports : [10001, 10002]
-}, () => {
-  setTimeout(done, 1000);
-});
+client.call('deletePortRouting', {
+  app_name : 'http-api',
+  port : 9001
+} [...]);
+```
 
-nginx.deleteAppRouting('app-name', () => {
-  setTimeout(done, 1000);
-});
+## Test
+
+```
+$ sudo npm test
+```
+
+## Run
+
+```
+$ sudo node index.js
 ```
 
 ## Build NGINX

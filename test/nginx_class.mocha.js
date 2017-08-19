@@ -3,9 +3,7 @@ const Nginx = require('..');
 const needle = require('needle');
 const pm2 = require('pm2');
 const should = require('should');
-const WS = require('ws');
 const Helpers = require('./helpers.js');
-const path = require('path');
 const fs = require('fs');
 
 describe('Nginx Class', function() {
@@ -65,7 +63,7 @@ describe('Nginx Class', function() {
 
     it('should instanciate client', function() {
       client = require('spiderlink')({
-        namespace : 'nginx-interface',
+        namespace : 'pm2',
         forceNew : true
       });
     });
@@ -79,7 +77,6 @@ describe('Nginx Class', function() {
 
     it('should get configuration', function(done) {
       client.call('getConfiguration', function(data) {
-        console.log(data);
         conf = data;
         done();
       });
@@ -130,13 +127,43 @@ describe('Nginx Class', function() {
       }], done)
     });
 
-    it('should configure nginx', function(done) {
-      client.call('addOrUpdateAppRouting', {
+    it('should connect 9001 -> 10001', function(done) {
+      client.call('addPortRouting', {
         app_name : 'app1',
-        routing : {
+        opts : {
           mode : 'http',
           in_port : 9001,
-          out_ports : [10001, 10002, 10003]
+          out_port : 10001
+        }
+      }, (packet) => {
+        should(packet.err).be.null();
+        should(packet.data.http['app1'].instances.length).eql(1);
+        setTimeout(done, 1000);
+      });
+    });
+
+    it('should connect 9001 -> 10002', function(done) {
+      client.call('addPortRouting', {
+        app_name : 'app1',
+        opts : {
+          mode : 'http',
+          in_port : 9001,
+          out_port : 10002
+        }
+      }, (packet) => {
+        should(packet.err).be.null();
+        should(packet.data.http['app1'].instances.length).eql(2);
+        setTimeout(done, 1000);
+      });
+    });
+
+    it('should connect 9001 -> 10003', function(done) {
+      client.call('addPortRouting', {
+        app_name : 'app1',
+        opts : {
+          mode : 'http',
+          in_port : 9001,
+          out_port : 10003
         }
       }, (packet) => {
         should(packet.err).be.null();
@@ -148,10 +175,14 @@ describe('Nginx Class', function() {
     it('should have right config file', function(done) {
       console.log(`Reading ${conf.conf_file}`);
       var conf_file = fs.readFileSync(conf.conf_file).toString();
-      console.log(conf_file);
+      //console.log(conf_file);
 
-      var err_file = fs.readFileSync('/var/log/nginx/error.log').toString();
-      console.log(err_file);
+      try {
+        var err_file = fs.readFileSync('/var/log/nginx/error.log').toString();
+      } catch(e) {
+        var err_file = fs.readFileSync('/usr/local/var/log/nginx/error.log').toString();
+      }
+      //console.log(err_file);
       done();
     });
 
@@ -159,37 +190,37 @@ describe('Nginx Class', function() {
       Helpers.multi_query(9001, [10001, 10002, 10003], done);
     });
 
-    it('should re-configure nginx with Zero Downtime Reload (no failures at all)', function(done) {
-      this.timeout(3000);
-
-      Helpers.check_availability(1500, done);
-
-      setTimeout(function() {
-        client.call('addOrUpdateAppRouting', {
-          app_name : 'app1',
-          routing : {
-            mode : 'http',
-            in_port : 9001,
-            out_ports : [10004, 10005]
-          }
-        }, function() {
-        });
-      }, 500);
-    });
-
-    it('should frontal ip hit all new backends (10004, 10005)', function(done) {
-      Helpers.multi_query(9001, [10004, 10005], done);
-    });
-
-    it('should delete configuration', function(done) {
-      client.call('deleteAppRouting', {
-        app_name : 'app1'
-      }, () => {
-        setTimeout(done, 1000);
+    it('should delete 10001', function(done) {
+      client.call('deletePortRouting', {
+        app_name : 'app1',
+        port : 10001
+      }, function(packet) {
+        should(packet.data.http['app1'].instances.length).eql(2);
+        done();
       });
     });
 
-    it('should request fail', function(done) {
+    it('should delete 10002', function(done) {
+      client.call('deletePortRouting', {
+        app_name : 'app1',
+        port : 10002
+      }, function(packet) {
+        should(packet.data.http['app1'].instances.length).eql(1);
+        done();
+      });
+    });
+
+    it('should delete 10003', function(done) {
+      client.call('deletePortRouting', {
+        app_name : 'app1',
+        port : 10003
+      }, function(packet) {
+        should.not.exists(packet.data.http['app1']);
+        done();
+      });
+    });
+
+    it.skip('should request fail', function(done) {
       needle.get('http://localhost:9001', (err, res, body) => {
         should.exist(err);
         should(err.message).containEql('ECONNREFUSED');
